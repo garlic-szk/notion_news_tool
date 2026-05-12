@@ -121,28 +121,21 @@ def send_line(news_summary):
     user_id = LINE_USER_ID
 
     if not token or not user_id:
-        print(f"LINE設定が不足しています (Token: {'OK' if token else '空'}, ID: {'OK' if user_id else '空'})")
+        print("LINE設定が不足しています。")
         return
-
-    # デバッグ用：トークンの形式を確認（最初の3文字だけ表示）
-    print(f"DEBUG: Token starts with: '{token.strip()[:3]}...' (Length: {len(token.strip())})")
 
     message = "おはようございます！本日のニュースです。\n\n"
     for cat, items in news_summary.items():
         message += f"【{cat}】\n"
         for item in items:
-            message += f"・{item['title']}\n"
+            message += f"・{item['title']}\n  {item['link']}\n"
         message += "\n"
     message += "詳細はNotionを確認してください。"
-
-    # デバッグ用：ヘッダーの形式を確認
-    auth_header = f"Bearer {token.strip()}"
-    print(f"DEBUG: Auth Header Prefix: '{auth_header[:10]}...' (Total Length: {len(auth_header)})")
 
     url = "https://api.line.me/v2/bot/message/push"
     headers = {
         "Content-Type": "application/json",
-        "Authorization": auth_header
+        "Authorization": f"Bearer {token.strip()}"
     }
     data = {
         "to": user_id.strip(),
@@ -150,14 +143,13 @@ def send_line(news_summary):
     }
 
     try:
-        # タイムアウトを設定して確実にリクエスト
         response = requests.post(url, headers=headers, json=data, timeout=10)
         if response.status_code != 200:
             print(f"LINE送信エラー (Status: {response.status_code}): {response.text}")
         else:
             print("LINEを送信しました。")
     except Exception as e:
-        print(f"LINE送信中に通信エラーが発生しました: {e}")
+        print(f"LINE送信中にエラーが発生しました: {e}")
 
 # ========================================
 # 4. メイン処理
@@ -184,10 +176,17 @@ def main():
                 category_news.append(item)
         all_news[category] = category_news
 
-    # テスト用：時刻や曜日に関係なく、両方に送信する
-    print("テスト送信を実行します...")
-    send_email(all_news)
-    send_line(all_news)
+    # 2. 条件に応じて通知
+    # 平日 12時台の実行（11時〜13時の間にActionsが動けば送信） -> メール
+    if not is_holiday and (11 <= hour <= 13):
+        send_email(all_news)
+    
+    # 土日祝 8時台の実行（7時〜9時の間にActionsが動けば送信） -> LINE
+    elif is_holiday and (7 <= hour <= 9):
+        send_line(all_news)
+    
+    else:
+        print("現在の時刻・曜日では通知をスキップします（Notionへの蓄積のみ完了）。")
 
 if __name__ == "__main__":
     main()
