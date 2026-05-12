@@ -131,13 +131,8 @@ def send_line(news_summary):
             message += f"・{item['title']}\n{item['link']}\n\n"
     message += "詳細はNotionを確認してください。"
 
-    # デバッグ: メッセージの長さと冒頭を確認
-    print(f"[DEBUG] LINE message length: {len(message)} chars")
-    print(f"[DEBUG] LINE message preview:\n{message[:500]}")
-
     # LINEのテキストメッセージ上限は5000文字
     if len(message) > 5000:
-        print(f"[WARNING] メッセージが5000文字を超えています({len(message)}文字)。切り詰めます。")
         message = message[:4990] + "\n..."
 
     url = "https://api.line.me/v2/bot/message/push"
@@ -180,15 +175,21 @@ def main():
         for keyword in words:
             items = fetch_google_news(keyword)
             for item in items:
-                # デバッグ: リンクの値を確認
-                print(f"  [DEBUG] title={item['title'][:30]}... | link={item['link']}")
                 add_to_notion(item, f"{category} ({keyword})")
                 category_news.append(item)
         all_news[category] = category_news
 
-    # テスト用：常に両方に送信
-    send_email(all_news)
-    send_line(all_news)
+    # 2. 条件に応じて通知
+    # 平日 12時台の実行 -> メール
+    if not is_holiday and (11 <= hour <= 13):
+        send_email(all_news)
+    
+    # 土日祝 8時台の実行 -> LINE
+    elif is_holiday and (7 <= hour <= 9):
+        send_line(all_news)
+    
+    else:
+        print("現在の時刻・曜日では通知をスキップします（Notionへの蓄積のみ完了）。")
 
 if __name__ == "__main__":
     main()
