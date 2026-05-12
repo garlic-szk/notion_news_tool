@@ -124,6 +124,9 @@ def send_line(news_summary):
         print(f"LINE設定が不足しています (Token: {'OK' if token else '空'}, ID: {'OK' if user_id else '空'})")
         return
 
+    # デバッグ用：トークンの形式を確認（最初の3文字だけ表示）
+    print(f"DEBUG: Token starts with: '{token.strip()[:3]}...' (Length: {len(token.strip())})")
+
     message = "おはようございます！本日のニュースです。\n\n"
     for cat, items in news_summary.items():
         message += f"【{cat}】\n"
