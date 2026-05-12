@@ -176,17 +176,9 @@ def main():
                 category_news.append(item)
         all_news[category] = category_news
 
-    # 2. 条件に応じて通知
-    # 平日 12時台の実行（11時〜13時の間にActionsが動けば送信） -> メール
-    if not is_holiday and (11 <= hour <= 13):
-        send_email(all_news)
-    
-    # 土日祝 8時台の実行（7時〜9時の間にActionsが動けば送信） -> LINE
-    elif is_holiday and (7 <= hour <= 9):
-        send_line(all_news)
-    
-    else:
-        print("現在の時刻・曜日では通知をスキップします（Notionへの蓄積のみ完了）。")
+    # 確認テスト用：常に両方に送信する
+    send_email(all_news)
+    send_line(all_news)
 
 if __name__ == "__main__":
     main()
