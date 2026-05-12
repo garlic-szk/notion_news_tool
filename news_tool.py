@@ -128,9 +128,8 @@ def send_line(news_summary):
     for cat, items in news_summary.items():
         message += f"【{cat}】\n"
         for item in items:
-            # 成功した形式：タイトル[リンク]
-            message += f"・{item['title']}\n[{item['link']}]\n"
-        message += "\n"
+            # タイトルとリンクを表示（リンクは行頭スペースなしで独立行に）
+            message += f"・{item['title']}\n{item['link']}\n\n"
     message += "詳細はNotionを確認してください。"
 
     url = "https://api.line.me/v2/bot/message/push"
@@ -177,17 +176,9 @@ def main():
                 category_news.append(item)
         all_news[category] = category_news
 
-    # 2. 条件に応じて通知
-    # 平日 12時台の実行 -> メール
-    if not is_holiday and (11 <= hour <= 13):
-        send_email(all_news)
-    
-    # 土日祝 8時台の実行 -> LINE
-    elif is_holiday and (7 <= hour <= 9):
-        send_line(all_news)
-    
-    else:
-        print("現在の時刻・曜日では通知をスキップします（Notionへの蓄積のみ完了）。")
+    # テスト用：常に両方に送信
+    send_email(all_news)
+    send_line(all_news)
 
 if __name__ == "__main__":
     main()
