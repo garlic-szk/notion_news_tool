@@ -135,18 +135,23 @@ def send_line(news_summary):
         message += "\n"
     message += "詳細はNotionを確認してください。"
 
+    # デバッグ用：ヘッダーの形式を確認
+    auth_header = f"Bearer {token.strip()}"
+    print(f"DEBUG: Auth Header Prefix: '{auth_header[:10]}...' (Total Length: {len(auth_header)})")
+
     url = "https://api.line.me/v2/bot/message/push"
     headers = {
-        "Authorization": f"Bearer {token.strip()}",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "Authorization": auth_header
     }
     data = {
-        "to": user_id,
+        "to": user_id.strip(),
         "messages": [{"type": "text", "text": message}]
     }
 
     try:
-        response = requests.post(url, headers=headers, json=data)
+        # タイムアウトを設定して確実にリクエスト
+        response = requests.post(url, headers=headers, json=data, timeout=10)
         if response.status_code != 200:
             print(f"LINE送信エラー (Status: {response.status_code}): {response.text}")
         else:
