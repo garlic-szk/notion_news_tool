@@ -128,9 +128,13 @@ def send_line(news_summary):
     for cat, items in news_summary.items():
         message += f"【{cat}】\n"
         for item in items:
-            message += f"・{item['title']}\n  {item['link']}\n"
+            # 形式変更：タイトル[リンク] の形に
+            message += f"・{item['title']}\n[{item['link']}]\n"
         message += "\n"
     message += "詳細はNotionを確認してください。"
+
+    # ログ出力：実際に送る内容をGitHubのログで見れるようにする
+    print(f"--- LINE送信内容チェック ---\n{message}\n----------------------------")
 
     url = "https://api.line.me/v2/bot/message/push"
     headers = {
