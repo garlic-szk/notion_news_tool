@@ -117,8 +117,11 @@ def send_email(news_summary):
 
 def send_line(news_summary):
     """LINEにニュースを送信する"""
-    if not all([LINE_CHANNEL_ACCESS_TOKEN, LINE_USER_ID]):
-        print("LINE設定が不足しています。")
+    token = LINE_CHANNEL_ACCESS_TOKEN
+    user_id = LINE_USER_ID
+
+    if not token or not user_id:
+        print(f"LINE設定が不足しています (Token: {'OK' if token else '空'}, ID: {'OK' if user_id else '空'})")
         return
 
     message = "おはようございます！本日のニュースです。\n\n"
@@ -131,20 +134,22 @@ def send_line(news_summary):
 
     url = "https://api.line.me/v2/bot/message/push"
     headers = {
-        "Authorization": f"Bearer {LINE_CHANNEL_ACCESS_TOKEN}",
+        "Authorization": f"Bearer {token.strip()}",
         "Content-Type": "application/json"
     }
     data = {
-        "to": LINE_USER_ID,
+        "to": user_id,
         "messages": [{"type": "text", "text": message}]
     }
 
     try:
         response = requests.post(url, headers=headers, json=data)
-        response.raise_for_status()
-        print("LINEを送信しました。")
+        if response.status_code != 200:
+            print(f"LINE送信エラー (Status: {response.status_code}): {response.text}")
+        else:
+            print("LINEを送信しました。")
     except Exception as e:
-        print(f"LINE送信エラー: {e}")
+        print(f"LINE送信中に通信エラーが発生しました: {e}")
 
 # ========================================
 # 4. メイン処理
