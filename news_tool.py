@@ -128,9 +128,17 @@ def send_line(news_summary):
     for cat, items in news_summary.items():
         message += f"【{cat}】\n"
         for item in items:
-            # タイトルとリンクを表示（リンクは行頭スペースなしで独立行に）
             message += f"・{item['title']}\n{item['link']}\n\n"
     message += "詳細はNotionを確認してください。"
+
+    # デバッグ: メッセージの長さと冒頭を確認
+    print(f"[DEBUG] LINE message length: {len(message)} chars")
+    print(f"[DEBUG] LINE message preview:\n{message[:500]}")
+
+    # LINEのテキストメッセージ上限は5000文字
+    if len(message) > 5000:
+        print(f"[WARNING] メッセージが5000文字を超えています({len(message)}文字)。切り詰めます。")
+        message = message[:4990] + "\n..."
 
     url = "https://api.line.me/v2/bot/message/push"
     headers = {
@@ -172,6 +180,8 @@ def main():
         for keyword in words:
             items = fetch_google_news(keyword)
             for item in items:
+                # デバッグ: リンクの値を確認
+                print(f"  [DEBUG] title={item['title'][:30]}... | link={item['link']}")
                 add_to_notion(item, f"{category} ({keyword})")
                 category_news.append(item)
         all_news[category] = category_news
