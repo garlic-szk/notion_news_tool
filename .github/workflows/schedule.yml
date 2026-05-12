@@ -1,0 +1,34 @@
+name: Daily News Fetcher & Notifier
+
+on:
+  schedule:
+    # 毎日 日本時間の朝8時（UTC 23:00）と昼12時（UTC 03:00）に実行
+    - cron: '0 23 * * *'
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  run-news-tool:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 自分のプログラムをサーバーに持ってくる
+        uses: actions/checkout@v4
+        
+      - name: Pythonを使えるようにする
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          
+      - name: 必要なライブラリをインストールする
+        run: pip install -r requirements.txt
+        
+      - name: ニュース取得と通知の実行
+        env:
+          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
+          DATABASE_ID: ${{ secrets.DATABASE_ID }}
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          WORK_EMAIL: ${{ secrets.WORK_EMAIL }}
+          LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
+          LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
+        run: python news_tool.py
