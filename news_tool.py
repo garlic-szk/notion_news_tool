@@ -151,23 +151,40 @@ def upload_to_google_drive(content, filename):
     }
 
     try:
-        # GASはPOSTに対して302リダイレクトを返す仕様
-        # 1. まずPOSTでデータを送信（リダイレクトは追わない）
-        # 2. GAS側で doPost が実行され、ファイル保存が完了
-        # 3. リダイレクト先にGETでアクセスして結果を受け取る
-        response = requests.post(webapp_url, json=payload, timeout=30, allow_redirects=False)
+        import json as json_module
+        payload_str = json_module.dumps(payload)
         
-        if response.status_code in [301, 302, 303, 307, 308]:
-            redirect_url = response.headers.get("Location")
-            # リダイレクト先にはGETでアクセスして結果を取得
-            response = requests.get(redirect_url, timeout=30)
+        # デバッグ: 送信先URLの形式を確認
+        print(f"DEBUG: GAS URL先頭20文字: {webapp_url[:20]}...")
         
-        response.raise_for_status()
-        result = response.json()
-        if result.get("status") == "success":
-            print(f"Google Driveにファイルをアップロードしました (File ID: {result.get('fileId')})")
+        # GASへのPOSTリクエスト（リダイレクトは自動で追跡させる）
+        headers = {"Content-Type": "application/json"}
+        response = requests.post(
+            webapp_url,
+            data=payload_str,
+            headers=headers,
+            timeout=60
+        )
+        
+        # デバッグ: レスポンスの詳細
+        print(f"DEBUG: ステータスコード={response.status_code}")
+        print(f"DEBUG: レスポンス先頭200文字: {response.text[:200]}")
+        
+        if response.status_code == 200:
+            try:
+                result = response.json()
+                if result.get("status") == "success":
+                    print(f"Google Driveにファイルをアップロードしました (File ID: {result.get('fileId')})")
+                else:
+                    print(f"GASエラー: {result.get('message')}")
+            except Exception:
+                # GASが正常にリダイレクトした場合、HTMLが返ることがある
+                if "Moved Temporarily" not in response.text:
+                    print(f"GAS応答（JSON以外）: {response.text[:300]}")
+                else:
+                    print("GASへの送信は完了しました（レスポンスはリダイレクトHTML）")
         else:
-            print(f"GASエラー: {result.get('message')}")
+            print(f"GAS HTTPエラー: {response.status_code} - {response.text[:300]}")
     except Exception as e:
         print(f"Google Driveアップロード失敗: {e}")
 
