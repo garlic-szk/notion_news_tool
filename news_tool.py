@@ -9,9 +9,6 @@ import jpholiday
 from datetime import datetime
 import pytz
 import google.generativeai as genai
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload
-from google.oauth2 import service_account
 import json
 
 # ========================================
@@ -37,8 +34,9 @@ KEYWORDS = {
 
 # API/Drive設定
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-GDRIVE_SERVICE_ACCOUNT_JSON = os.environ.get("GDRIVE_SERVICE_ACCOUNT_JSON")
+GDRIVE_WEBAPP_URL = os.environ.get("GDRIVE_WEBAPP_URL")
 GDRIVE_FOLDER_ID = os.environ.get("GDRIVE_FOLDER_ID")
+
 
 # ========================================
 # 2. 判定・取得ロジック
@@ -98,11 +96,12 @@ def add_to_notion(news, source_keyword):
 
 def generate_notebooklm_briefing(news_summary):
     """Geminiを使ってNotebookLM用の要約レポートを作成する"""
-    if not GEMINI_API_KEY:
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if not api_key:
         print("GEMINI_API_KEYが設定されていません。")
         return None
 
-    genai.configure(api_key=GEMINI_API_KEY)
+    genai.configure(api_key=api_key)
     
     # ニュース内容をテキストにまとめる
     content_text = ""
@@ -129,7 +128,7 @@ def generate_notebooklm_briefing(news_summary):
     """
 
     try:
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-flash-latest')
         response = model.generate_content(prompt)
         return response.text
     except Exception as e:
@@ -137,36 +136,30 @@ def generate_notebooklm_briefing(news_summary):
         return None
 
 def upload_to_google_drive(content, filename):
-    """Google Driveにレポートをアップロードする"""
-    if not all([GDRIVE_SERVICE_ACCOUNT_JSON, GDRIVE_FOLDER_ID]):
-        print("Google Driveの設定が不足しています。")
+    """GAS（ウェブアプリ）経由でGoogle Driveにレポートをアップロードする"""
+    webapp_url = os.environ.get("GDRIVE_WEBAPP_URL")
+    folder_id = os.environ.get("GDRIVE_FOLDER_ID")
+
+    if not all([webapp_url, folder_id]):
+        print("Google Drive (GAS) の設定が不足しています。")
         return
 
+    payload = {
+        "folderId": folder_id,
+        "filename": filename,
+        "content": content
+    }
+
     try:
-        # サービスアカウントの認証
-        info = json.loads(GDRIVE_SERVICE_ACCOUNT_JSON)
-        creds = service_account.Credentials.from_service_account_info(info)
-        service = build('drive', 'v3', credentials=creds)
-
-        # 一時ファイルを作成してアップロード
-        temp_file = "temp_briefing.txt"
-        with open(temp_file, "w", encoding="utf-8") as f:
-            f.write(content)
-
-        file_metadata = {
-            'name': filename,
-            'parents': [GDRIVE_FOLDER_ID]
-        }
-        media = MediaFileUpload(temp_file, mimetype='text/plain')
-        
-        file = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
-        print(f"Google Driveにファイルをアップロードしました (ID: {file.get('id')})")
-        
-        # 一時ファイルの削除
-        os.remove(temp_file)
-        
+        response = requests.post(webapp_url, json=payload, timeout=30)
+        response.raise_for_status()
+        result = response.json()
+        if result.get("status") == "success":
+            print(f"Google Driveにファイルをアップロードしました (File ID: {result.get('fileId')})")
+        else:
+            print(f"GASエラー: {result.get('message')}")
     except Exception as e:
-        print(f"Google Driveアップロードエラー: {e}")
+        print(f"Google Driveアップロード失敗: {e}")
 
 # ========================================
 # 3. 通知ロジック

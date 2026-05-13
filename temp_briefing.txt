@@ -1,0 +1,2 @@
+# Test Briefing
+This is a test content for NotebookLM integration.
