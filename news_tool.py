@@ -151,15 +151,16 @@ def upload_to_google_drive(content, filename):
     }
 
     try:
-        # GASはPOSTに対して302リダイレクトを返すため、セッションを使って手動で追跡する
-        session = requests.Session()
-        # まずリダイレクトせずにPOSTを送信
-        response = session.post(webapp_url, json=payload, timeout=30, allow_redirects=False)
+        # GASはPOSTに対して302リダイレクトを返す仕様
+        # 1. まずPOSTでデータを送信（リダイレクトは追わない）
+        # 2. GAS側で doPost が実行され、ファイル保存が完了
+        # 3. リダイレクト先にGETでアクセスして結果を受け取る
+        response = requests.post(webapp_url, json=payload, timeout=30, allow_redirects=False)
         
-        # 302リダイレクトが来た場合は、リダイレクト先にもPOSTで再送信
         if response.status_code in [301, 302, 303, 307, 308]:
             redirect_url = response.headers.get("Location")
-            response = session.post(redirect_url, json=payload, timeout=30)
+            # リダイレクト先にはGETでアクセスして結果を取得
+            response = requests.get(redirect_url, timeout=30)
         
         response.raise_for_status()
         result = response.json()
