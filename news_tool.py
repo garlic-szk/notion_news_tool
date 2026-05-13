@@ -162,7 +162,6 @@ def main():
     # 日本時間での現在時刻を取得
     jst = pytz.timezone('Asia/Tokyo')
     now = datetime.now(jst)
-    hour = now.hour
     is_holiday = is_holiday_or_weekend(now)
 
     print(f"実行時刻(JST): {now.strftime('%Y-%m-%d %H:%M:%S')}")
@@ -179,17 +178,11 @@ def main():
                 category_news.append(item)
         all_news[category] = category_news
 
-    # 2. 条件に応じて通知
-    # 平日 12時台の実行 -> メール
-    if not is_holiday and (11 <= hour <= 13):
+    # 2. 平日/休日に応じて通知（時刻判定なし：GitHub Actionsの遅延に対応）
+    if not is_holiday:
         send_email(all_news)
-    
-    # 土日祝 8時台の実行 -> LINE
-    elif is_holiday and (7 <= hour <= 9):
-        send_line(all_news)
-    
     else:
-        print("現在の時刻・曜日では通知をスキップします（Notionへの蓄積のみ完了）。")
+        send_line(all_news)
 
 if __name__ == "__main__":
     main()

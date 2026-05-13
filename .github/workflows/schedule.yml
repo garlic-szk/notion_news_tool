@@ -2,9 +2,10 @@ name: Daily News Fetcher & Notifier
 
 on:
   schedule:
-    # 毎日 日本時間の朝8時（UTC 23:00）と昼12時（UTC 03:00）に実行
-    - cron: '0 23 * * *'
-    - cron: '0 3 * * *'
+    # 平日 日本時間の朝9時（UTC 00:00）にメール送信
+    - cron: '0 0 * * 1-5'
+    # 土日 日本時間の朝8時（UTC 23:00 前日）にLINE送信
+    - cron: '0 23 * * 0,6'
   workflow_dispatch:
 
 jobs:
