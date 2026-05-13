@@ -8,6 +8,11 @@ from email.mime.multipart import MIMEMultipart
 import jpholiday
 from datetime import datetime
 import pytz
+import google.generativeai as genai
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
+from google.oauth2 import service_account
+import json
 
 # ========================================
 # 1. 環境変数の設定
@@ -29,6 +34,11 @@ KEYWORDS = {
     "仕事": ["マーケティング", "プロモーション", "ポイント経済圏", "Web広告"],
     "趣味": ["AI", "ワイン", "東京のレストラン", "グルメ"]
 }
+
+# API/Drive設定
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+GDRIVE_SERVICE_ACCOUNT_JSON = os.environ.get("GDRIVE_SERVICE_ACCOUNT_JSON")
+GDRIVE_FOLDER_ID = os.environ.get("GDRIVE_FOLDER_ID")
 
 # ========================================
 # 2. 判定・取得ロジック
@@ -81,6 +91,82 @@ def add_to_notion(news, source_keyword):
         requests.post(url, headers=headers, json=data).raise_for_status()
     except Exception as e:
         print(f"    Notion追加失敗: {e}")
+
+# ========================================
+# 3. AI解析・Drive連携ロジック
+# ========================================
+
+def generate_notebooklm_briefing(news_summary):
+    """Geminiを使ってNotebookLM用の要約レポートを作成する"""
+    if not GEMINI_API_KEY:
+        print("GEMINI_API_KEYが設定されていません。")
+        return None
+
+    genai.configure(api_key=GEMINI_API_KEY)
+    
+    # ニュース内容をテキストにまとめる
+    content_text = ""
+    for cat, items in news_summary.items():
+        content_text += f"■カテゴリ: {cat}\n"
+        for item in items:
+            content_text += f"タイトル: {item['title']}\n"
+    
+    prompt = f"""
+    あなたはプロのマーケティングアナリストです。
+    以下の今日のニュースリストを読み、NotebookLMに読み込ませるための「朝刊ブリーフィング・レポート」を作成してください。
+
+    【ニュース内容】
+    {content_text}
+
+    【レポートの構成案】
+    1. 今日の注目トピック（最も重要なニュース3選とその背景）
+    2. マーケティング・ポイント経済圏の動向（アナリストの視点での解説）
+    3. ライフスタイル・トレンド（ワインやグルメに関するトピック）
+    4. 今日一日のビジネスに役立つインサイト
+
+    ※NotebookLMのポッドキャスト機能が面白くなるよう、事実だけでなく「なぜこれが重要なのか」「今後どう動くか」といった洞察を深めに含めてください。
+    ※出力は日本語で、構造化されたMarkdown形式にしてください。
+    """
+
+    try:
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        response = model.generate_content(prompt)
+        return response.text
+    except Exception as e:
+        print(f"Geminiレポート生成エラー: {e}")
+        return None
+
+def upload_to_google_drive(content, filename):
+    """Google Driveにレポートをアップロードする"""
+    if not all([GDRIVE_SERVICE_ACCOUNT_JSON, GDRIVE_FOLDER_ID]):
+        print("Google Driveの設定が不足しています。")
+        return
+
+    try:
+        # サービスアカウントの認証
+        info = json.loads(GDRIVE_SERVICE_ACCOUNT_JSON)
+        creds = service_account.Credentials.from_service_account_info(info)
+        service = build('drive', 'v3', credentials=creds)
+
+        # 一時ファイルを作成してアップロード
+        temp_file = "temp_briefing.txt"
+        with open(temp_file, "w", encoding="utf-8") as f:
+            f.write(content)
+
+        file_metadata = {
+            'name': filename,
+            'parents': [GDRIVE_FOLDER_ID]
+        }
+        media = MediaFileUpload(temp_file, mimetype='text/plain')
+        
+        file = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+        print(f"Google Driveにファイルをアップロードしました (ID: {file.get('id')})")
+        
+        # 一時ファイルの削除
+        os.remove(temp_file)
+        
+    except Exception as e:
+        print(f"Google Driveアップロードエラー: {e}")
 
 # ========================================
 # 3. 通知ロジック
@@ -178,7 +264,16 @@ def main():
                 category_news.append(item)
         all_news[category] = category_news
 
-    # 2. 平日/休日に応じて通知（時刻判定なし：GitHub Actionsの遅延に対応）
+    # 2. Geminiによる要約レポート作成 (NotebookLM用)
+    print("NotebookLM用のレポートを生成中...")
+    briefing_content = generate_notebooklm_briefing(all_news)
+    
+    if briefing_content:
+        # Google Driveへアップロード
+        filename = f"Marketing_Briefing_{now.strftime('%Y%m%d')}.txt"
+        upload_to_google_drive(briefing_content, filename)
+    
+    # 3. 通知
     if not is_holiday:
         send_email(all_news)
     else:

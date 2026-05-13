@@ -2,10 +2,8 @@ name: Daily News Fetcher & Notifier
 
 on:
   schedule:
-    # 平日 日本時間の朝9時（UTC 00:00）にメール送信
-    - cron: '0 0 * * 1-5'
-    # 土日 日本時間の朝8時（UTC 23:00 前日）にLINE送信
-    - cron: '0 23 * * 0,6'
+    # 毎日 日本時間の朝6時（UTC 21:00）に実行
+    - cron: '0 21 * * *'
   workflow_dispatch:
 
 jobs:
@@ -35,4 +33,7 @@ jobs:
           WORK_EMAIL: ${{ secrets.WORK_EMAIL }}
           LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
           LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GDRIVE_SERVICE_ACCOUNT_JSON: ${{ secrets.GDRIVE_SERVICE_ACCOUNT_JSON }}
+          GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
         run: python news_tool.py
