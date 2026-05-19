@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marketing Command Center - LM Intelligence Hub</title>
+    <meta name="description" content="LM社のためのマーケティングインテリジェンス・ハブ。ニュース、AIプロンプト、企画分析を集約。">
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Mono&display=swap" rel="stylesheet">
+    <!-- Lucide Icons (CDN) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Marked.js (Markdown Parser) -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- サイドナビゲーション -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <span class="logo-icon">🚀</span>
+                    <span class="logo-text">MCC <span class="logo-badge">PRO</span></span>
+                </div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <button class="nav-btn active" data-tab="dashboard" id="nav-dashboard">
+                    <i data-lucide="layout-dashboard"></i>
+                    <span>ダッシュボード</span>
+                </button>
+                <button class="nav-btn" data-tab="ai-generator" id="nav-ai-generator">
+                    <i data-lucide="sparkles"></i>
+                    <span>AI企画生成</span>
+                </button>
+                <button class="nav-btn" data-tab="news-feed" id="nav-news">
+                    <i data-lucide="newspaper"></i>
+                    <span>インテリジェンス</span>
+                </button>
+                <button class="nav-btn" data-tab="notes" id="nav-notes">
+                    <i data-lucide="clipboard-list"></i>
+                    <span>アイデア・メモ</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <button class="nav-btn settings-btn" data-tab="settings" id="nav-settings">
+                    <i data-lucide="settings"></i>
+                    <span>環境設定</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- メインコンテンツ -->
+        <main class="main-content">
+            <header class="main-header">
+                <div class="header-left">
+                    <h1 id="page-title">ダッシュボード</h1>
+                    <p class="subtitle" id="page-subtitle">今日のマーケティング活動を開始しましょう</p>
+                </div>
+                <div class="header-right">
+                    <div class="status-badge error" id="api-status">
+                        <span class="status-dot"></span>
+                        <span id="api-status-text">Gemini API 未設定</span>
+                    </div>
+                    <div class="date-display" id="date-display">2026/05/18</div>
+                </div>
+            </header>
+
+            <!-- セクション: ダッシュボード -->
+            <section id="tab-dashboard" class="tab-content active">
+                <div class="dashboard-grid">
+                    <!-- クイックサマリー -->
+                    <div class="card card-welcome">
+                        <h2>こんにちは、LMマーケター 👋</h2>
+                        <p>本日のインテリジェンスとAI企画ツールが利用可能です。まずは「AI企画生成」でクライアント分析を行うか、最新の「インテリジェンス」ニュースをチェックしましょう。</p>
+                        <div class="welcome-actions">
+                            <button class="btn btn-primary" onclick="switchTab('ai-generator')">
+                                <i data-lucide="sparkles"></i> AI企画を始める
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- ニュース速報ショートカット -->
+                    <div class="card card-news-quick">
+                        <div class="card-header">
+                            <h3>最新インテリジェンス</h3>
+                            <button class="btn-text" onclick="switchTab('news-feed')">すべて見る <i data-lucide="arrow-right"></i></button>
+                        </div>
+                        <div class="quick-news-list" id="quick-news-list">
+                            <div class="loading-state">ニュースを読み込んでいます...</div>
+                        </div>
+                    </div>
+
+                    <!-- ショートカット集 -->
+                    <div class="card card-links">
+                        <h3>クイックリンク</h3>
+                        <div class="links-grid">
+                            <a href="https://notion.so" target="_blank" rel="noopener noreferrer" class="link-item">
+                                <span class="link-icon notion">N</span>
+                                <div class="link-info">
+                                    <span class="link-title">Notion DB</span>
+                                    <span class="link-desc">ニュース蓄積DBを開く</span>
+                                </div>
+                            </a>
+                            <a href="https://drive.google.com" target="_blank" rel="noopener noreferrer" class="link-item">
+                                <span class="link-icon drive">▲</span>
+                                <div class="link-info">
+                                    <span class="link-title">Google Drive</span>
+                                    <span class="link-desc">朝刊ブリーフィングフォルダ</span>
+                                </div>
+                            </a>
+                            <a href="https://notebooklm.google.com" target="_blank" rel="noopener noreferrer" class="link-item">
+                                <span class="link-icon notebook">📓</span>
+                                <div class="link-info">
+                                    <span class="link-title">NotebookLM</span>
+                                    <span class="link-desc">音声ブリーフィングを作成</span>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- 最近の生成履歴 -->
+                    <div class="card card-history">
+                        <h3>最近生成した企画案</h3>
+                        <div class="history-list" id="quick-history-list">
+                            <p class="empty-state">まだ履歴がありません</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- セクション: AI企画生成 -->
+            <section id="tab-ai-generator" class="tab-content">
+                <div class="generator-container">
+                    <div class="generator-sidebar">
+                        <form id="ai-generator-form" onsubmit="generateMarketingPlan(event)">
+                            <div class="form-group">
+                                <label for="client-url">クライアント企業のURL <span class="required">*</span></label>
+                                <input type="url" id="client-url" placeholder="https://example.com" required>
+                                <span class="form-help">指定されたURLから企業の強みや事業内容をAIが自動分析します。</span>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="client-notes">補足・注力要件（任意）</label>
+                                <textarea id="client-notes" rows="4" placeholder="例：新規顧客の獲得を特に強化したい、若年層向けのプロモーション案を検討してほしい、など"></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="prompt-template">プロンプトテンプレート</label>
+                                <select id="prompt-template">
+                                    <option value="lm-standard">LM社標準 ターゲティング＆施策企画</option>
+                                    <option value="wine-monetize">【副業用】ワイン収益化・企画支援</option>
+                                </select>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary btn-block" id="generate-btn">
+                                <i data-lucide="play"></i> 企画案を生成する
+                            </button>
+                        </form>
+                    </div>
+
+                    <div class="generator-result">
+                        <div class="result-header">
+                            <h3>生成結果プレビュー</h3>
+                            <div class="result-actions">
+                                <button class="btn btn-secondary btn-sm" id="copy-result-btn" disabled onclick="copyResultToClipboard()">
+                                    <i data-lucide="copy"></i> コピー
+                                </button>
+                            </div>
+                        </div>
+                        <div class="result-output" id="result-output">
+                            <div class="empty-state">
+                                <i data-lucide="sparkles" size="48"></i>
+                                <p>クライアントURLを入力し、「企画案を生成する」ボタンをクリックすると、ここにAIが構築した最高品質の戦略レポートが表示されます。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- セクション: インテリジェンス（ニュースフィード） -->
+            <section id="tab-news-feed" class="tab-content">
+                <div class="news-container">
+                    <div class="news-filter-bar">
+                        <div class="search-box">
+                            <i data-lucide="search"></i>
+                            <input type="text" id="news-search" placeholder="ニュースを検索..." oninput="filterNews()">
+                        </div>
+                        <div class="category-tabs">
+                            <button class="filter-chip active" data-category="all" onclick="filterCategory('all')">すべて</button>
+                            <button class="filter-chip" data-category="business" onclick="filterCategory('business')">仕事（マーケ/広告）</button>
+                            <button class="filter-chip" data-category="hobby" onclick="filterCategory('hobby')">趣味（AI/ワイン/グルメ）</button>
+                        </div>
+                        <button class="btn btn-secondary" onclick="fetchNewsFeed(true)">
+                            <i data-lucide="rotate-cw"></i> 最新情報に更新
+                        </button>
+                    </div>
+
+                    <div class="news-grid" id="news-grid-list">
+                        <div class="loading-state">ニュースを読み込んでいます...</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- セクション: アイデア・メモ -->
+            <section id="tab-notes" class="tab-content">
+                <div class="notes-container">
+                    <div class="notes-sidebar">
+                        <h3>新規メモ作成</h3>
+                        <form id="note-form" onsubmit="saveNote(event)">
+                            <div class="form-group">
+                                <input type="text" id="note-title" placeholder="タイトル" required>
+                            </div>
+                            <div class="form-group">
+                                <textarea id="note-content" rows="6" placeholder="アイデアや気づきを入力してください..." required></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="note-tag">カテゴリ・タグ</label>
+                                <select id="note-tag">
+                                    <option value="idea">アイデア</option>
+                                    <option value="competitor">競合・市場トレンド</option>
+                                    <option value="client">クライアントメモ</option>
+                                    <option value="other">その他</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-block">メモを保存する</button>
+                        </form>
+                    </div>
+
+                    <div class="notes-main">
+                        <div class="notes-header">
+                            <h3>メモ・アイデア一覧</h3>
+                            <div class="search-box">
+                                <i data-lucide="search"></i>
+                                <input type="text" id="notes-search" placeholder="メモを検索..." oninput="filterNotes()">
+                            </div>
+                        </div>
+                        <div class="notes-grid-display" id="notes-grid-display">
+                            <p class="empty-state">メモがありません。左のフォームから作成してください。</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- セクション: 環境設定 -->
+            <section id="tab-settings" class="tab-content">
+                <div class="card settings-card">
+                    <h2>環境設定</h2>
+                    <p class="subtitle">APIキーやアプリケーション of 動作を設定します。データはブラウザのLocalStorageにのみ安全に保存されます。</p>
+
+                    <hr class="divider">
+
+                    <form id="settings-form" onsubmit="saveSettings(event)">
+                        <div class="form-group">
+                            <label for="gemini-key">Gemini APIキー</label>
+                            <input type="password" id="gemini-key" placeholder="AI-..." autocomplete="off">
+                            <span class="form-help">AI企画案のリアルタイム生成に必要です。<a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer">Google AI Studio</a>から取得できます。</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="notion-db-id">Notion データベースID</label>
+                            <input type="text" id="notion-db-id" placeholder="Notion DB ID (任意)">
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">設定を保存する</button>
+                    </form>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        // Lucideアイコンの初期化
+        lucide.createIcons();
+    </script>
+</body>
+</html>
