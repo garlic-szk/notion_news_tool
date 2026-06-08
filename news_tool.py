@@ -10,6 +10,32 @@ from datetime import datetime
 import pytz
 import google.generativeai as genai
 import json
+def is_url_in_notion(url):
+    """Notionのデータベースに同一のリンク（URL）が存在するか確認する"""
+    if not NOTION_API_KEY or not DATABASE_ID:
+        return False
+    query_url = f"https://api.notion.com/v1/databases/{DATABASE_ID}/query"
+    headers = {
+        "Authorization": f"Bearer {NOTION_API_KEY}",
+        "Content-Type": "application/json",
+        "Notion-Version": "2022-06-28"
+    }
+    filter_data = {
+        "filter": {
+            "property": "リンク",
+            "url": {
+                "equals": url.strip()
+            }
+        }
+    }
+    try:
+        response = requests.post(query_url, headers=headers, json=filter_data, timeout=10)
+        response.raise_for_status()
+        results = response.json().get("results", [])
+        return len(results) > 0
+    except Exception as e:
+        print(f"Notion重複確認エラー ({url}): {e}")
+        return False
 
 # ========================================
 # 1. 環境変数の設定
@@ -230,8 +256,21 @@ def send_line(news_summary):
         print("LINE設定が不足しています。")
         return
 
-    message = "おはようございます！本日のニュースです。\n\n"
+    # 各カテゴリのニュースを最大2件に絞り込む
+    filtered_summary = {}
     for cat, items in news_summary.items():
+        filtered_summary[cat] = items[:2]  # 最大2件に制限
+
+    # 送信する記事が全くない場合はスキップ
+    total_articles = sum(len(items) for items in filtered_summary.values())
+    if total_articles == 0:
+        print("LINE送信対象となる新規ニュースがありません。送信をスキップします。")
+        return
+
+    message = "おはようございます！本日のニュースです。\n\n"
+    for cat, items in filtered_summary.items():
+        if not items:
+            continue
         message += f"【{cat}】\n"
         for item in items:
             message += f"・{item['title']}\n{item['link']}\n\n"
@@ -271,17 +310,23 @@ def main():
     is_holiday = is_holiday_or_weekend(now)
 
     print(f"実行時刻(JST): {now.strftime('%Y-%m-%d %H:%M:%S')}")
-    print(f"判定: {'土日祝' if is_holiday else '平日'}")
+    print(f"判定: {'土日祝' if is_holiday else '平日'} (※現在は毎日LINE配信に統合されています)")
 
-    # 1. ニュースを収集してNotionに保存 (常に実行して蓄積)
+    # 1. ニュースを収集してNotionに保存 (未登録のもののみ保存＆LINE送信対象へ)
     all_news = {}
     for category, words in KEYWORDS.items():
         category_news = []
         for keyword in words:
+            print(f"キーワード '{keyword}' のニュースを検索中...")
             items = fetch_google_news(keyword)
             for item in items:
-                add_to_notion(item, f"{category} ({keyword})")
-                category_news.append(item)
+                # Notionに既に同一URLが登録されているか（重複しているか）チェック
+                if not is_url_in_notion(item['link']):
+                    print(f"  [新規ニュース] Notion追加: {item['title']}")
+                    add_to_notion(item, f"{category} ({keyword})")
+                    category_news.append(item)
+                else:
+                    print(f"  [重複スキップ] すでに登録済み: {item['title']}")
         all_news[category] = category_news
 
     # 2. Geminiによる要約レポート作成 (NotebookLM用)
@@ -293,11 +338,8 @@ def main():
         filename = f"Marketing_Briefing_{now.strftime('%Y%m%d')}.txt"
         upload_to_google_drive(briefing_content, filename)
     
-    # 3. 通知
-    if not is_holiday:
-        send_email(all_news)
-    else:
-        send_line(all_news)
+    # 3. 通知 (LINEのみに一本化)
+    send_line(all_news)
 
 if __name__ == "__main__":
     main()
