@@ -58,6 +58,10 @@ KEYWORDS = {
     "趣味": ["AI", "ワイン", "東京のレストラン", "グルメ"]
 }
 
+# LINEに配信するカテゴリごとの最大件数
+MAX_ARTICLES_PER_CATEGORY = 4
+
+
 # API/Drive設定
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 GDRIVE_WEBAPP_URL = os.environ.get("GDRIVE_WEBAPP_URL")
@@ -256,10 +260,10 @@ def send_line(news_summary):
         print("LINE設定が不足しています。")
         return
 
-    # 各カテゴリのニュースを最大2件に絞り込む
+    # 各カテゴリのニュースを指定された最大件数に絞り込む
     filtered_summary = {}
     for cat, items in news_summary.items():
-        filtered_summary[cat] = items[:2]  # 最大2件に制限
+        filtered_summary[cat] = items[:MAX_ARTICLES_PER_CATEGORY]
 
     # 送信する記事が全くない場合はスキップ
     total_articles = sum(len(items) for items in filtered_summary.values())
